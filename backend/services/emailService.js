@@ -1,33 +1,35 @@
-const nodemailer = require('nodemailer')
-const dotenv = require('dotenv')
+const nodemailer = require('nodemailer');
+const dotenv = require('dotenv');
 dotenv.config();
 
+// Use 'service: gmail' which automatically configures host (smtp.gmail.com) and port (465)
 const transporter = nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: 587,
-    secure: false, // true for 465, false for other ports
+    service: 'gmail',
     auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS 
     },
-    tls: {
-      rejectUnauthorized: false
-    },
-    connectionTimeout: 10000, // 10 seconds
-    greetingTimeout: 10000,
-    socketTimeout: 10000
-})
+    // Increased timeouts for slower server responses in production
+    connectionTimeout: 20000, // 20 seconds
+    greetingTimeout: 20000,
+    socketTimeout: 20000
+});
 
 transporter.verify((error, success) => {
     if(error) {
-        console.error('Email services failed')
-    }else {
-        console.log('Gmail configured properly and ready to send email')
+        console.error('Email service verification failed:', error);
+    } else {
+        console.log('Gmail configured properly and ready to send email');
     }
 });
 
 const sendOtpToEmail = async(email, otp) => {
-      const html = `
+    // Basic validation
+    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+        throw new Error("Email credentials missing in environment variables");
+    }
+
+    const html = `
     <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6;">
       <h2 style="color: #075e54;">🔐 Chat Pat Web Verification</h2>
       
@@ -53,11 +55,11 @@ const sendOtpToEmail = async(email, otp) => {
 
     try {
         await transporter.sendMail({
-            from: `Hi there, < ${process.env.EMAIL_USER}` ,
+            from: `"Chat App Security" <${process.env.EMAIL_USER}>`,
             to: email,
-            subject: 'your app verification code',
+            subject: 'Your App Verification Code',
             html,
-        })
+        });
         console.log(`OTP sent successfully to ${email}`);
     } catch (error) {
         console.error('Error sending OTP email:', error);
