@@ -43,8 +43,8 @@ const sendOtp = async (req, res) => {
     await user.save();
     return response(res, 200, 'OTP send succesfully', user);
   } catch (error) {
-    console.error(error);
-    return response(res, 500, 'send_otp_error:: || Internal server error');
+    console.error('Error in sendOtp controller:', error);
+    return response(res, 500, `send_otp_error:: ${error.message || 'Internal server error'}`);
   }
 };
 

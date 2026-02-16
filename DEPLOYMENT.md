@@ -77,3 +77,5 @@ This guide will help you deploy your **Chat-Pat** application to be live on the 
 -   **CORS Error?** Check if `FRONTEND_URL` in Backend matches the Vercel URL exactly (no trailing slash).
 -   **Socket Error?** Ensure `REACT_APP_API_URL` in Frontend matches the Render URL (no trailing slash).
 -   **Camera Issue?** Ensure you are testing on `https` (Vercel provides this by default). Browsers block camera on `http`.
+-   **Build Error (Warnings)?** If the build fails with `Treating warnings as errors`, go to Vercel **Settings** -> **Environment Variables** and add `CI` = `false`. This prevents the build from failing due to minor code warnings.
+-   **OTP Loading Forever?** If the spinner keeps spinning, your **Email Credentials** are likely wrong or blocked. Check Render Logs. Ensure you are using an **App Password** (16 characters, no spaces), NOT your login password.

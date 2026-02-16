@@ -6,6 +6,7 @@ const getToken = () => localStorage.getItem("auth_token");
 
 const axiosInstance = axios.create({
     baseURL: apiUrl,
+    timeout: 30000, // 30 seconds timeout
     // withCredentials: true
 })
 

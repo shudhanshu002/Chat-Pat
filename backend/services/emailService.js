@@ -7,7 +7,10 @@ const transporter = nodemailer.createTransport({
     auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS 
-    }
+    },
+    connectionTimeout: 10000, // 10 seconds
+    greetingTimeout: 10000,
+    socketTimeout: 10000
 })
 
 transporter.verify((error, success) => {
@@ -43,12 +46,18 @@ const sendOtpToEmail = async(email, otp) => {
     </div>
   `;
 
-    await transporter.sendMail({
-        from: `Hi there, < ${process.env.EMAIL_USER}` ,
-        to: email,
-        subject: 'your app verification code',
-        html,
-    })
+    try {
+        await transporter.sendMail({
+            from: `Hi there, < ${process.env.EMAIL_USER}` ,
+            to: email,
+            subject: 'your app verification code',
+            html,
+        })
+        console.log(`OTP sent successfully to ${email}`);
+    } catch (error) {
+        console.error('Error sending OTP email:', error);
+        throw new Error(`Email service failed: ${error.message}`);
+    }
 }
 
 module.exports = sendOtpToEmail;
