@@ -2,17 +2,22 @@ const nodemailer = require('nodemailer');
 const dotenv = require('dotenv');
 dotenv.config();
 
-// Use 'service: gmail' which automatically configures host (smtp.gmail.com) and port (465)
+// We use manual configuration instead of 'service: gmail' to have full control
+// over timeouts and IP versions.
 const transporter = nodemailer.createTransport({
-    service: 'gmail',
+    host: 'smtp.gmail.com',
+    port: 465, // Use Port 465 (SSL) which is less likely to be blocked by cloud firewalls
+    secure: true, // true for 465
     auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS 
     },
-    // Increased timeouts for slower server responses in production
-    connectionTimeout: 20000, // 20 seconds
-    greetingTimeout: 20000,
-    socketTimeout: 20000
+    // Force IPv4. Many cloud providers (like Render/AWS) fail with IPv6 (default).
+    family: 4, 
+    // Drastically increased timeouts for production environments
+    connectionTimeout: 60000, // 60 seconds
+    greetingTimeout: 30000,   // 30 seconds
+    socketTimeout: 60000      // 60 seconds
 });
 
 transporter.verify((error, success) => {
