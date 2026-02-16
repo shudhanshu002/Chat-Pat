@@ -1,43 +1,16 @@
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 const dotenv = require('dotenv');
 dotenv.config();
 
-// Switched to Port 587 with Debugging Enabled
-const transporter = nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: 587, 
-    secure: false, // Must be false for port 587
-    auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS 
-    },
-    // CRITICAL: Force IPv4. Render/AWS often fail with IPv6.
-    family: 4, 
-    // ENABLE DEBUGGING: This will print SMTP logs to your Render console
-    logger: true,
-    debug: true,
-    // Loose TLS constraints for cloud environments
-    tls: {
-        rejectUnauthorized: false 
-    },
-    // Increased timeouts
-    connectionTimeout: 60000, // 60 seconds
-    greetingTimeout: 30000,   // 30 seconds
-    socketTimeout: 60000      // 60 seconds
-});
-
-transporter.verify((error, success) => {
-    if(error) {
-        console.error('Email service verification failed:', error);
-    } else {
-        console.log('Gmail configured properly and ready to send email');
-    }
-});
+// Initialize Resend with the API Key
+// This uses standard HTTPS (Port 443), which is NEVER blocked by Render/Cloud providers.
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 const sendOtpToEmail = async(email, otp) => {
-    // Basic validation
-    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-        throw new Error("Email credentials missing in environment variables");
+    // 1. Validate Configuration
+    if (!process.env.RESEND_API_KEY) {
+        console.error("❌ MISSING VAR: RESEND_API_KEY is missing in Environment.");
+        throw new Error("Server configuration error: Missing email credentials.");
     }
 
     const html = `
@@ -45,35 +18,40 @@ const sendOtpToEmail = async(email, otp) => {
       <h2 style="color: #075e54;">🔐 Chat Pat Web Verification</h2>
       
       <p>Hi there,</p>
-      
       <p>Your one-time password (OTP) to verify your WhatsApp Web account is:</p>
       
       <h1 style="background: #e0f7fa; color: #000; padding: 10px 20px; display: inline-block; border-radius: 5px; letter-spacing: 2px;">
         ${otp}
       </h1>
 
-      <p><strong>This OTP is valid for the next 5 minutes.</strong> Please do not share this code with anyone.</p>
-
-      <p>If you didn’t request this OTP, please ignore this email.</p>
-
+      <p><strong>This OTP is valid for the next 5 minutes.</strong></p>
       <p style="margin-top: 20px;">Thanks & Regards,<br/>WhatsApp Web Security Team</p>
-
       <hr style="margin: 30px 0;" />
-
-      <small style="color: #777;">This is an automated message. Please do not reply.</small>
+      <small style="color: #777;">This is an automated message.</small>
     </div>
   `;
 
     try {
-        await transporter.sendMail({
-            from: `"Chat App Security" <${process.env.EMAIL_USER}>`,
+        console.log(`Attempting to send email to ${email} via Resend API...`);
+        
+        // NOTE: If you haven't verified a custom domain on Resend,
+        // you MUST use 'onboarding@resend.dev' as the 'from' address.
+        // You can only send TO the email address you signed up with (for testing).
+        const data = await resend.emails.send({
+            from: 'Chat App Security <onboarding@resend.dev>',
             to: email,
             subject: 'Your App Verification Code',
-            html,
+            html: html,
         });
-        console.log(`OTP sent successfully to ${email}`);
+
+        if (data.error) {
+            console.error("❌ Resend API Error:", data.error);
+            throw new Error(data.error.message);
+        }
+        
+        console.log(`✅ OTP sent successfully. ID: ${data.data.id}`);
     } catch (error) {
-        console.error('Error sending OTP email:', error);
+        console.error('❌ SEND FAILURE:', error);
         throw new Error(`Email service failed: ${error.message}`);
     }
 }
